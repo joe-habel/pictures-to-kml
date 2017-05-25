@@ -1,15 +1,17 @@
-
 <?php 
 /*
-This code was scraped together by Nick G and Wade S during the GeoHuntsville Hackathon.  Need to still address:
+This code is based on stuff created by Nick G and Wade S during the GeoHuntsville Hackathon. Joe H ported it over to export as KML instead of GeoJSON in summer '17
+
+Need to still address:
 1) web directory to local directory mapping
-2) GeoJSON format for images embedded
-3) Modificaitons to the GeoJSON import in GeoQ
 4) Comments and attribution (esp for GetGPps function and gps2Num function)
-5) Still need to figure out the right places to put the data in the GeoJSON to expose it as an image (thumbnail) and clickable URL in GeoQ
+5) Recurse subdirectories
 */
-// Set this variable to the direcoty that serves the images
-$webdirectory = 'http://rcal.ist.psu.edu/campusconstruction/';
+
+// Set this variable to the directory that serves the images
+$webdirectory = 'http://rcal.ist.psu.edu/rebersburg/';
+
+
 function getGps($exifCoord, $hemi) {
     $degrees = count($exifCoord) > 0 ? gps2Num($exifCoord[0]) : 0;
     $minutes = count($exifCoord) > 1 ? gps2Num($exifCoord[1]) : 0;
@@ -38,13 +40,12 @@ MR: Added GeoQ parameters below:
 function head()
 {
     $heads = <<<EOS
-    <?xml version="1.0" encoding="UTF-8"?>
-    <kml xmlns="http://www.opengis.net/kml/2.2">
+<?xml version="1.0" encoding="UTF-8"?>
+<kml xmlns="http://www.opengis.net/kml/2.2">
     <Document>
 EOS;
 return $heads;        
 }
-
 function footer()
 {
     $foots = <<<foot
@@ -54,12 +55,12 @@ foot;
 return $foots;
 }
 
-function Placemark($link,$lat,$lon,$datetime)
+function Placemark($filename,$link,$lat,$lon,$datetime)
 {
     $place = <<<EOS
         <Placemark>
-        <name>Photo $datetime</name>
-        <description> <![CDATA[ <img src = ".$link." width = 300 height = 240>]]> </description>
+        <name>$filename</name>
+        <description> <![CDATA[ <a href = "$link" target="_blank"> <img src = "$link" width =  150 height = 120></a>]]> </description>
         <Point>            
         <coordinates>$lon,$lat,0</coordinates>
         </Point>
@@ -71,7 +72,6 @@ return $place;
 
 header('Content-Type: application/kml');
 print head();
-
 $directory = './';
 $scanned_directory = array_diff(scandir($directory), array('..', '.', '.images.php.swp', 'images.php','.php'));
 foreach ($scanned_directory as $filename) {
@@ -80,10 +80,8 @@ foreach ($scanned_directory as $filename) {
         $exifforfile = exif_read_data($filename);
         list ($lat,$lon,$datetime) = reportGps ($exifforfile);
         $link = $webdirectory.$filename;
-        print Placemark($link,$lat,$lon,$datetime);
+        print Placemark($filename,$link,$lat,$lon,$datetime);
         }
 }
-
-
 print footer();
- ?>
+?>
